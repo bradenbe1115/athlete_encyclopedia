@@ -1,0 +1,26 @@
+database:
+  - name: test_database_with_multiple_schemas
+    schemas:
+      - name: schema_with_one_table
+        tables: [table_one]
+        views: []
+      
+      - name: schema_with_multiple_tables
+        tables: [table_one, table_two]
+        views: []
+
+      - name: schema_with_multiple_object_types
+        tables: [table_one]
+        views: [view_one, view_two]
+
+      - name: empty_schema
+        tables: []
+        views: []
+
+  - name: test_database_with_one_schema
+    schemas:
+      - name: schema_with_one_table
+        tables: [table_one]
+  
+  - name: test_database_no_schemas
+    
