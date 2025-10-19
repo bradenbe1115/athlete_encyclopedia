@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -83,13 +84,13 @@ func BuildFetchAthletesQuery(p GetAthletesParams) (q string, a []interface{}) {
 	var args []interface{}
 	paramCount := 1
 	if p.FullName != nil && *p.FullName != "" {
-		conditions = append(conditions, "fullname = $"+string(rune(paramCount)))
+		conditions = append(conditions, "fullname = $"+strconv.Itoa(paramCount))
 		args = append(args, *p.FullName)
 		paramCount++
 	}
 
 	if p.Team != nil && *p.Team != "" {
-		conditions = append(conditions, "team = $"+string(rune(paramCount)))
+		conditions = append(conditions, "team = $"+strconv.Itoa(paramCount))
 		args = append(args, *p.Team)
 		paramCount++
 	}
@@ -97,9 +98,8 @@ func BuildFetchAthletesQuery(p GetAthletesParams) (q string, a []interface{}) {
 	query := "select * from athletes"
 
 	if len(conditions) > 0 {
-		query += " WHERE " + strings.Join(conditions, " AND ")
+		query += " WHERE " + strings.Join(conditions, " and ")
 	}
-
 	return query, args
 }
 

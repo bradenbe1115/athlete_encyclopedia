@@ -22,6 +22,67 @@ func toDriverValues(args []interface{}) []driver.Value {
 	return vals
 }
 
+func TestBuildFetchAthletesQuery(t *testing.T) {
+	tt := []struct {
+		desc          string
+		team          string
+		fullName      string
+		expectedQuery string
+		expectedArgs  []interface{}
+	}{
+		{
+			desc:          "No params",
+			team:          "",
+			fullName:      "",
+			expectedQuery: `select * from athletes`,
+			expectedArgs:  nil,
+		},
+		{
+			desc:          "Full Name param only",
+			team:          "",
+			fullName:      "Test",
+			expectedQuery: `select * from athletes WHERE fullname = $1`,
+			expectedArgs:  []interface{}{"Test"},
+		},
+		{
+			desc:          "Team param only",
+			team:          "Test Team",
+			fullName:      "",
+			expectedQuery: `select * from athletes WHERE team = $1`,
+			expectedArgs:  []interface{}{"Test Team"},
+		},
+		{
+			desc:          "Team and full name params",
+			team:          "Test Team",
+			fullName:      "Test",
+			expectedQuery: `select * from athletes WHERE fullname = $1 and team = $2`,
+			expectedArgs:  []interface{}{"Test", "Test Team"},
+		},
+	}
+
+	for _, test := range tt {
+		t.Run(test.desc, func(t *testing.T) {
+			p := GetAthletesParams{
+				FullName: &test.fullName,
+				Team:     &test.team,
+			}
+
+			query, args := BuildFetchAthletesQuery(p)
+			matched, err := regexp.MatchString(regexp.QuoteMeta(test.expectedQuery), query)
+			if err != nil {
+				t.Fatalf("invalid regex pattern: %v", err)
+			}
+			if !matched {
+				t.Errorf("query does not match expected pattern.\nPattern: %s\nActual:  %s", test.expectedQuery, query)
+			}
+
+			if diff := cmp.Diff(test.expectedArgs, args); diff != "" {
+				t.Errorf("expected -, actual +:\n%s", diff)
+			}
+		})
+	}
+}
+
 func TestFetchAthletes(t *testing.T) {
 	var fetchAthletesColumns = []string{"id", "createdat", "fullname", "firstname", "lastname"}
 	parsedTime, err := time.Parse("2006-01-02 15:04:05.000 -0700", "2020-05-25 23:30:31.198 +0000")
