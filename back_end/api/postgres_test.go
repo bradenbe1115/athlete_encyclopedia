@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"database/sql/driver"
 	"errors"
 	"log/slog"
+	"regexp"
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
@@ -11,6 +13,14 @@ import (
 
 	"testing"
 )
+
+func toDriverValues(args []interface{}) []driver.Value {
+	vals := make([]driver.Value, len(args))
+	for i, v := range args {
+		vals[i] = driver.Value(v)
+	}
+	return vals
+}
 
 func TestFetchAthletes(t *testing.T) {
 	var fetchAthletesColumns = []string{"id", "createdat", "fullname", "firstname", "lastname"}
@@ -20,14 +30,16 @@ func TestFetchAthletes(t *testing.T) {
 	}
 	tt := []struct {
 		desc          string
-		expectedQuery string
+		query         string
+		args          []interface{}
 		newRows       *sqlmock.Rows
 		expected      []Athlete
 		expectedError error
 	}{
 		{
-			desc:          "Successful Fetch",
-			expectedQuery: `SELECT .+ FROM athletes;`,
+			desc:  "No params successful fetch",
+			query: `SELECT .+ FROM athletes`,
+			args:  []interface{}{},
 			newRows: sqlmock.NewRows(fetchAthletesColumns).
 				AddRow("1", parsedTime, "The Athlete", "The", "Athlete"),
 			expected: []Athlete{
@@ -42,8 +54,43 @@ func TestFetchAthletes(t *testing.T) {
 			expectedError: nil,
 		},
 		{
-			desc:          "Successful Fetch",
-			expectedQuery: `SELECT .+ FROM athletes;`,
+			desc:  "One param successful fetch",
+			query: `SELECT .+ FROM athletes WHERE fullname = ?`,
+			args:  []interface{}{"The Athlete"},
+			newRows: sqlmock.NewRows(fetchAthletesColumns).
+				AddRow("1", parsedTime, "The Athlete", "The", "Athlete"),
+			expected: []Athlete{
+				{
+					ID:        "1",
+					CreatedAt: parsedTime,
+					FullName:  "The Athlete",
+					FirstName: "The",
+					LastName:  "Athlete",
+				},
+			},
+			expectedError: nil,
+		},
+		{
+			desc:  "Multiple params successful fetch",
+			query: `SELECT .+ FROM athletes WHERE fullname = ? AND team = ?`,
+			args:  []interface{}{"The Athlete", "Eagles"},
+			newRows: sqlmock.NewRows(fetchAthletesColumns).
+				AddRow("1", parsedTime, "The Athlete", "The", "Athlete"),
+			expected: []Athlete{
+				{
+					ID:        "1",
+					CreatedAt: parsedTime,
+					FullName:  "The Athlete",
+					FirstName: "The",
+					LastName:  "Athlete",
+				},
+			},
+			expectedError: nil,
+		},
+		{
+			desc:  "Unexpected query result leads to error",
+			query: `SELECT .+ FROM athletes;`,
+			args:  []interface{}{},
 			newRows: sqlmock.NewRows(fetchAthletesColumns).
 				AddRow(nil, parsedTime, "The Athlete", "The", "Athlete"),
 			expected:      nil,
@@ -59,11 +106,11 @@ func TestFetchAthletes(t *testing.T) {
 			}
 			defer db.Close()
 
-			mock.ExpectQuery(test.expectedQuery).WillReturnRows(test.newRows)
+			mock.ExpectQuery(regexp.QuoteMeta(test.query)).WithArgs(toDriverValues(test.args)...).WillReturnRows(test.newRows)
 
 			client := PostgresClient{DB: db, Logger: slog.New(slog.DiscardHandler)}
 
-			athletes, err := client.FetchAthletes(context.Background())
+			athletes, err := client.FetchAthletes(context.Background(), test.query, test.args)
 			if !errors.Is(err, test.expectedError) {
 				t.Errorf("unexpected error: %v", err)
 			}

@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	ErrUnexpectedQueryResultsSchema = errors.New("Unexpected query result schema.")
+	ErrUnexpectedQueryResultsSchema = errors.New("unexpected query result schema")
 )
 
 // PostgresConnector implements DBConnector
@@ -44,8 +44,9 @@ type PostgresClient struct {
 }
 
 // getAthlete responds with the list of all athletes as JSON.
-func (pc *PostgresClient) FetchAthletes(ctx context.Context) ([]Athlete, error) {
-	rows, err := pc.DB.QueryContext(ctx, `SELECT * FROM athletes;`)
+func (pc *PostgresClient) FetchAthletes(ctx context.Context, query string, args []interface{}) ([]Athlete, error) {
+
+	rows, err := pc.DB.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("counld not retrieve data from db: %w", err)
 	}
