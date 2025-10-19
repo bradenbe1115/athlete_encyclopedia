@@ -84,7 +84,7 @@ func BuildFetchAthletesQuery(p GetAthletesParams) (q string, a []interface{}) {
 	var args []interface{}
 	paramCount := 1
 	if p.FullName != nil && *p.FullName != "" {
-		conditions = append(conditions, "fullname = $"+strconv.Itoa(paramCount))
+		conditions = append(conditions, "full_name = $"+strconv.Itoa(paramCount))
 		args = append(args, *p.FullName)
 		paramCount++
 	}
@@ -111,7 +111,7 @@ func (h *APIHandler) GetAthletes(c *gin.Context) {
 	athletes, err := h.DB.FetchAthletes(c, query, args)
 	if err != nil {
 		h.Logger.Error("failed to fetch athletes", "error", err)
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "failed to scan data."})
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch athletes."})
 		return
 	}
 	c.IndentedJSON(http.StatusOK, athletes)

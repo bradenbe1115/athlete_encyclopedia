@@ -41,7 +41,7 @@ func TestBuildFetchAthletesQuery(t *testing.T) {
 			desc:          "Full Name param only",
 			team:          "",
 			fullName:      "Test",
-			expectedQuery: `select * from athletes WHERE fullname = $1`,
+			expectedQuery: `select * from athletes WHERE full_name = $1`,
 			expectedArgs:  []interface{}{"Test"},
 		},
 		{
@@ -55,7 +55,7 @@ func TestBuildFetchAthletesQuery(t *testing.T) {
 			desc:          "Team and full name params",
 			team:          "Test Team",
 			fullName:      "Test",
-			expectedQuery: `select * from athletes WHERE fullname = $1 and team = $2`,
+			expectedQuery: `select * from athletes WHERE full_name = $1 and team = $2`,
 			expectedArgs:  []interface{}{"Test", "Test Team"},
 		},
 	}
@@ -116,7 +116,7 @@ func TestFetchAthletes(t *testing.T) {
 		},
 		{
 			desc:  "One param successful fetch",
-			query: `SELECT .+ FROM athletes WHERE fullname = ?`,
+			query: `SELECT .+ FROM athletes WHERE full_name = ?`,
 			args:  []interface{}{"The Athlete"},
 			newRows: sqlmock.NewRows(fetchAthletesColumns).
 				AddRow("1", parsedTime, "The Athlete", "The", "Athlete"),
@@ -133,7 +133,7 @@ func TestFetchAthletes(t *testing.T) {
 		},
 		{
 			desc:  "Multiple params successful fetch",
-			query: `SELECT .+ FROM athletes WHERE fullname = ? AND team = ?`,
+			query: `SELECT .+ FROM athletes WHERE full_name = ? AND team = ?`,
 			args:  []interface{}{"The Athlete", "Eagles"},
 			newRows: sqlmock.NewRows(fetchAthletesColumns).
 				AddRow("1", parsedTime, "The Athlete", "The", "Athlete"),
