@@ -27,10 +27,11 @@ CREATE TABLE IF NOT EXISTS seasons (
     created_at TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS athletes_years (
+CREATE TABLE IF NOT EXISTS athletes_teams_relations (
     id serial PRIMARY KEY,
     athlete_id INTEGER REFERENCES athletes(id),
     team_id INTEGER REFERENCES teams(id),
     season_id INTEGER REFERENCES seasons(id),
-    created_at TIMESTAMP
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP
 );
