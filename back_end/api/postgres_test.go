@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log/slog"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
@@ -31,44 +32,62 @@ func TestBuildFetchAthletesQuery(t *testing.T) {
 		expectedArgs  []interface{}
 	}{
 		{
-			desc:          "No params",
-			team:          "",
-			fullName:      "",
-			expectedQuery: `select * from athletes`,
-			expectedArgs:  nil,
+			desc:     "No params",
+			team:     "",
+			fullName: "",
+			expectedQuery: `select a.* from athletes a
+							LEFT JOIN athletes_teams_relations atr ON atr.athlete_id = a.id
+							LEFT JOIN teams t ON t.id = atr.team_id`,
+			expectedArgs: nil,
 		},
 		{
-			desc:          "Full Name param only",
-			team:          "",
-			fullName:      "Test",
-			expectedQuery: `select * from athletes WHERE full_name = $1`,
-			expectedArgs:  []interface{}{"Test"},
+			desc:     "Full Name param only",
+			team:     "",
+			fullName: "Test",
+			expectedQuery: `select a.* from athletes a
+							LEFT JOIN athletes_teams_relations atr ON atr.athlete_id = a.id
+							LEFT JOIN teams t ON t.id = atr.team_id
+							WHERE full_name = $1`,
+			expectedArgs: []interface{}{"Test"},
 		},
 		{
-			desc:          "Team param only",
-			team:          "Test Team",
-			fullName:      "",
-			expectedQuery: `select * from athletes WHERE team = $1`,
-			expectedArgs:  []interface{}{"Test Team"},
+			desc:     "Team param only",
+			team:     "Test Team",
+			fullName: "",
+			expectedQuery: `select a.* from athletes a
+							LEFT JOIN athletes_teams_relations atr ON atr.athlete_id = a.id
+							LEFT JOIN teams t ON t.id = atr.team_id 
+							WHERE team = $1`,
+			expectedArgs: []interface{}{"Test Team"},
 		},
 		{
-			desc:          "Team and full name params",
-			team:          "Test Team",
-			fullName:      "Test",
-			expectedQuery: `select * from athletes WHERE full_name = $1 and team = $2`,
-			expectedArgs:  []interface{}{"Test", "Test Team"},
+			desc:     "Team and full name params",
+			team:     "Test Team",
+			fullName: "Test",
+			expectedQuery: `select a.* from athletes a
+							LEFT JOIN athletes_teams_relations atr ON atr.athlete_id = a.id
+							LEFT JOIN teams t ON t.id = atr.team_id
+							WHERE full_name = $1 and team = $2`,
+			expectedArgs: []interface{}{"Test", "Test Team"},
 		},
+	}
+
+	normalize := func(s string) string {
+		return strings.Join(strings.Fields(s), " ")
 	}
 
 	for _, test := range tt {
 		t.Run(test.desc, func(t *testing.T) {
+
 			p := GetAthletesParams{
 				FullName: &test.fullName,
 				Team:     &test.team,
 			}
-
 			query, args := BuildFetchAthletesQuery(p)
-			matched, err := regexp.MatchString(regexp.QuoteMeta(test.expectedQuery), query)
+
+			normalizedExpected := normalize(test.expectedQuery)
+			normalizedActual := normalize(query)
+			matched, err := regexp.MatchString(regexp.QuoteMeta(normalizedExpected), normalizedActual)
 			if err != nil {
 				t.Fatalf("invalid regex pattern: %v", err)
 			}

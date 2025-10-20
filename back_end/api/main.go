@@ -95,7 +95,11 @@ func BuildFetchAthletesQuery(p GetAthletesParams) (q string, a []interface{}) {
 		paramCount++
 	}
 
-	query := "select * from athletes"
+	query := `select 
+						a.*
+					from athletes a
+					LEFT JOIN athletes_teams_relations atr ON atr.athlete_id = a.id
+					LEFT JOIN teams t ON t.id = atr.team_id`
 
 	if len(conditions) > 0 {
 		query += " WHERE " + strings.Join(conditions, " and ")
