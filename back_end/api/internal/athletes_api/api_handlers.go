@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"time"
@@ -40,6 +41,7 @@ func New(ctx context.Context, dbConnector DBConnector) (*APIHandler, error) {
 	logger := slog.Default()
 	db, err := dbConnector.Connect(ctx)
 	if err != nil {
+		fmt.Print("Huh")
 		return nil, err
 	}
 
