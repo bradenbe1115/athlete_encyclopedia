@@ -7,8 +7,6 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -75,36 +73,6 @@ type APIHandler struct {
 type GetAthletesParams struct {
 	FullName *string
 	Team     *string
-}
-
-// BuildFetchAthletesQuery builds the templated query and args
-// to fetch athletes based off request params
-func BuildFetchAthletesQuery(p GetAthletesParams) (q string, a []interface{}) {
-	var conditions []string
-	var args []interface{}
-	paramCount := 1
-	if p.FullName != nil && *p.FullName != "" {
-		conditions = append(conditions, "full_name = $"+strconv.Itoa(paramCount))
-		args = append(args, *p.FullName)
-		paramCount++
-	}
-
-	if p.Team != nil && *p.Team != "" {
-		conditions = append(conditions, "team = $"+strconv.Itoa(paramCount))
-		args = append(args, *p.Team)
-		paramCount++
-	}
-
-	query := `select 
-						a.*
-					from athletes a
-					LEFT JOIN athletes_teams_relations atr ON atr.athlete_id = a.id
-					LEFT JOIN teams t ON t.id = atr.team_id`
-
-	if len(conditions) > 0 {
-		query += " WHERE " + strings.Join(conditions, " and ")
-	}
-	return query, args
 }
 
 // GetAthletes creates HTTP response for fetch athletes.
