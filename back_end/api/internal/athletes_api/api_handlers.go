@@ -3,48 +3,12 @@ package main
 import (
 	"context"
 	"database/sql"
-	"log"
 	"log/slog"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
-	_ "github.com/lib/pq"
 )
-
-func main() {
-	ctx := context.Background()
-	logger := slog.Default()
-	router := gin.Default()
-
-	err := godotenv.Load(`../../.env`)
-	if err != nil {
-		log.Fatalf("Error loading .env file")
-	}
-	p := PostgresConnector{
-		Database: os.Getenv("POSTGRES_DB"),
-		User:     os.Getenv("POSTGRES_USER"),
-		Password: os.Getenv("POSTGRES_PASSWORD"),
-		Host:     os.Getenv("DB_HOST"),
-		Port:     os.Getenv("DB_PORT"),
-	}
-
-	db, err := p.Connect(ctx)
-	if err != nil {
-		logger.Error("failed to connect to database", "error", err)
-		os.Exit(1)
-	}
-	defer db.Close()
-
-	pc := &PostgresClient{db, logger}
-	h := &APIHandler{DB: pc, Logger: logger}
-
-	router.GET("/athletes", h.GetAthletes)
-
-	router.Run("localhost:8080")
-}
 
 type Athlete struct {
 	ID        string    `db:"id"`
@@ -68,6 +32,21 @@ type DBClient interface {
 type APIHandler struct {
 	DB     DBClient
 	Logger *slog.Logger
+}
+
+// New connects to the database using the DBConnector, and returns a *APIHandler
+// with an appropriate default configuration.
+func New(ctx context.Context, dbConnector DBConnector) (*APIHandler, error) {
+	logger := slog.Default()
+	db, err := dbConnector.Connect(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return &APIHandler{
+		DB:     &PostgresClient{db, logger},
+		Logger: logger,
+	}, nil
 }
 
 type GetAthletesParams struct {

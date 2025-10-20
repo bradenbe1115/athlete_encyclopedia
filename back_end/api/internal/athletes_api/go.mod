@@ -1,4 +1,4 @@
-module athlete_encyclopedia/api
+module athlete_encyclopedia/athletes_api
 
 go 1.24.5
 
