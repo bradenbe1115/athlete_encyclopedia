@@ -9,7 +9,7 @@ from spiders.sr_spiders import process_athlete_list_page
     [
         # Valid/Expected HTML 
         (
-            "scrapy_job/spiders/test_data/sports_reference_athlete_div/normal.html",
+            "scrapy_job/test_data/sports_reference_athlete_div/normal.html",
             [
                 {
                     "name": "Terry Anthony",
@@ -21,7 +21,7 @@ from spiders.sr_spiders import process_athlete_list_page
         ),
         # HTML with one valid athlete and one invalid
         (
-            "scrapy_job/spiders/test_data/sports_reference_athlete_div/missing_team.html",
+            "scrapy_job/test_data/sports_reference_athlete_div/missing_team.html",
             [
                 {
                     "name": "Terry Anthony",
@@ -32,7 +32,7 @@ from spiders.sr_spiders import process_athlete_list_page
         ),
         # Invalid HTML
         (
-            "scrapy_job/spiders/test_data/sports_reference_athlete_div/invalid.html",
+            "scrapy_job/test_data/sports_reference_athlete_div/invalid.html",
             [],
         ),
     ],

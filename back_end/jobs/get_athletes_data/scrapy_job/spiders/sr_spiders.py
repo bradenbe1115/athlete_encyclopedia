@@ -1,4 +1,5 @@
 import scrapy
+import string
 
 
 def process_athlete_list_page(response) -> list[dict]:
