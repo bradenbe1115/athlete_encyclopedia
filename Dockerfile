@@ -10,7 +10,5 @@ WORKDIR /src
 
 RUN pip install -e .
 
-COPY back_end/main.py .
-
 # bootstrap athletes db
 CMD ["python", "athletes/bootstrap_db.py"]
