@@ -75,6 +75,16 @@ func (d *DuckDBJSONPostgresLoader) CreateStagingTable(ctx context.Context, table
 	return nil
 }
 
+// AddImportIdColumn appends an import id column to the table and populates the value.
+func (d *DuckDBJSONPostgresLoader) AddImportIDColumn(ctx context.Context, table string, importID string) error {
+	query := fmt.Sprintf(`
+    ALTER TABLE %s
+    ADD COLUMN _import_id VARCHAR DEFAULT '%s'`, table, importID)
+
+	_, err := d.ExecuteQuery(ctx, query)
+	return err
+}
+
 type DBCol struct {
 	Name           string
 	DuckType       string
@@ -182,11 +192,18 @@ func (d *DuckDBJSONPostgresLoader) LoadFromStagingtoPostgres(ctx context.Context
 }
 
 // Run loads JSON data into Postgres table.
-func (d *DuckDBJSONPostgresLoader) Run(ctx context.Context, rawFilePath string, stagingTableName string, destTableName string) error {
+func (d *DuckDBJSONPostgresLoader) Run(ctx context.Context, importId string, rawFilePath string, stagingTableName string, destTableName string) error {
+
 	err := d.CreateStagingTable(ctx, stagingTableName, rawFilePath)
 	if err != nil {
 		return fmt.Errorf("failed to create staging table: %w", err)
 	}
+
+	err = d.AddImportIDColumn(ctx, stagingTableName, importId)
+	if err != nil {
+		return fmt.Errorf("failed to add import id column to staging table: %w", err)
+	}
+
 	dc, err := d.GetDuckDBTableSchema(ctx, stagingTableName)
 	if err != nil {
 		return fmt.Errorf("failed to get db schema: %w", err)
