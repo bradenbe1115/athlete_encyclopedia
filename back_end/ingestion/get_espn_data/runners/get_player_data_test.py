@@ -1,5 +1,5 @@
 import pytest
-import get_player_data
+import get_player_data as get_player_data
 from common.models import Athlete
 
 @pytest.mark.parametrize(
