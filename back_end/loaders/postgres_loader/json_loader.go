@@ -157,9 +157,7 @@ func CreateColDefs(dc []DBCol) []string {
 func (d *DuckDBJSONPostgresLoader) CreateDestTable(ctx context.Context, destTableName string, dc []DBCol) error {
 	colDefs := CreateColDefs(dc)
 
-	query := fmt.Sprintf(`CREATE TABLE IF NOT EXISTS pg.public.%s (
-	%s
-	)`, destTableName, strings.Join(colDefs, ", "))
+	query := fmt.Sprintf(`CREATE TABLE IF NOT EXISTS pg.public.%s (%s)`, destTableName, strings.Join(colDefs, ", "))
 
 	d.Logger.With("destTableName", destTableName, "query", query).InfoContext(ctx, "creating destination tables")
 	_, err := d.ExecuteQuery(ctx, query)
@@ -178,10 +176,8 @@ func (d *DuckDBJSONPostgresLoader) LoadFromStagingtoPostgres(ctx context.Context
 		colNames = append(colNames, c.NormalizedName)
 	}
 	query := fmt.Sprintf(`
-	INSERT INTO pg.public.%s (%s)
-	SELECT 
-		%s
-	FROM %s`, destTableName, strings.Join(colNames, ", "), strings.Join(colNames, ", "), stagingTable)
+	INSERT INTO pg.public.%s (%s) SELECT %s FROM %s`,
+		destTableName, strings.Join(colNames, ", "), strings.Join(colNames, ", "), stagingTable)
 
 	d.Logger.With("stagingTable", stagingTable, "destTableName", destTableName).InfoContext(ctx, "loading data into postgres")
 	_, err := d.ExecuteQuery(ctx, query)

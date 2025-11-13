@@ -121,12 +121,13 @@ func TestCreateDestTable(t *testing.T) {
 			destTableName: "dest_table",
 			dc: []DBCol{
 				{
-					Name:         "col_one",
-					DuckType:     "VARCHAR",
-					PostgresType: "TEXT",
+					Name:           "col_one",
+					DuckType:       "VARCHAR",
+					PostgresType:   "TEXT",
+					NormalizedName: "col_one",
 				},
 			},
-			expectedQuery: "CREATE TABLE IF NOT EXISTS dest_table (col_one TEXT)",
+			expectedQuery: "CREATE TABLE IF NOT EXISTS pg.public.dest_table (col_one TEXT)",
 			expectedError: nil,
 		},
 		{
@@ -134,17 +135,19 @@ func TestCreateDestTable(t *testing.T) {
 			destTableName: "dest_table",
 			dc: []DBCol{
 				{
-					Name:         "col_one",
-					DuckType:     "VARCHAR",
-					PostgresType: "TEXT",
+					Name:           "col_one",
+					DuckType:       "VARCHAR",
+					PostgresType:   "TEXT",
+					NormalizedName: "col_one",
 				},
 				{
-					Name:         "col_two",
-					DuckType:     "INTEGER",
-					PostgresType: "BIGINT",
+					Name:           "col_two",
+					DuckType:       "INTEGER",
+					PostgresType:   "BIGINT",
+					NormalizedName: "col_two",
 				},
 			},
-			expectedQuery: "CREATE TABLE IF NOT EXISTS dest_table (col_one TEXT, col_two BIGINT)",
+			expectedQuery: "CREATE TABLE IF NOT EXISTS pg.public.dest_table (col_one TEXT, col_two BIGINT)",
 			expectedError: nil,
 		},
 	}
@@ -157,7 +160,9 @@ func TestCreateDestTable(t *testing.T) {
 			}
 			defer db.Close()
 
-			mock.ExpectQuery(regexp.QuoteMeta(test.expectedQuery))
+			mock.ExpectExec(regexp.QuoteMeta(test.expectedQuery)).WillReturnResult(sqlmock.NewResult(1, 1))
+			loader := DuckDBJSONPostgresLoader{DB: db, Logger: slog.New(slog.DiscardHandler)}
+			err = loader.CreateDestTable(context.Background(), test.destTableName, test.dc)
 			if !errors.Is(err, test.expectedError) {
 				t.Errorf("unexpected error: %v", err)
 			}
@@ -178,15 +183,13 @@ func TestLoadFromStagingtoPostgres(t *testing.T) {
 			desc:          "Single column schema",
 			stagingTable:  "a_stg_table",
 			destTableName: "a_dst_table",
-			expectedQuery: `INSERT INTO a_dst_table
-							SELECT
-								col_one
-							FROM a_stg_tables`,
+			expectedQuery: `INSERT INTO pg.public.a_dst_table (col_one) SELECT col_one FROM a_stg_table`,
 			dc: []DBCol{
 				{
-					Name:         "col_one",
-					DuckType:     "VARCHAR",
-					PostgresType: "TEXT",
+					Name:           "col_one",
+					DuckType:       "VARCHAR",
+					PostgresType:   "TEXT",
+					NormalizedName: "col_one",
 				},
 			},
 			expectedError: nil,
@@ -196,21 +199,19 @@ func TestLoadFromStagingtoPostgres(t *testing.T) {
 			desc:          "Multi column schema",
 			stagingTable:  "a_stg_table",
 			destTableName: "a_dst_table",
-			expectedQuery: `INSERT INTO a_dst_table
-							SELECT
-								col_one,
-								col_two
-							FROM a_stg_tables`,
+			expectedQuery: `INSERT INTO pg.public.a_dst_table (col_one, col_two) SELECT col_one, col_two FROM a_stg_table`,
 			dc: []DBCol{
 				{
-					Name:         "col_one",
-					DuckType:     "VARCHAR",
-					PostgresType: "TEXT",
+					Name:           "col_one",
+					DuckType:       "VARCHAR",
+					PostgresType:   "TEXT",
+					NormalizedName: "col_one",
 				},
 				{
-					Name:         "col_two",
-					DuckType:     "INTEGER",
-					PostgresType: "BIGINT",
+					Name:           "col_two",
+					DuckType:       "INTEGER",
+					PostgresType:   "BIGINT",
+					NormalizedName: "col_two",
 				},
 			},
 			expectedError: nil,
@@ -225,7 +226,9 @@ func TestLoadFromStagingtoPostgres(t *testing.T) {
 			}
 			defer db.Close()
 
-			mock.ExpectQuery(regexp.QuoteMeta(test.expectedQuery))
+			mock.ExpectExec(regexp.QuoteMeta(test.expectedQuery)).WillReturnResult(sqlmock.NewResult(1, 1))
+			loader := DuckDBJSONPostgresLoader{DB: db, Logger: slog.New(slog.DiscardHandler)}
+			err = loader.LoadFromStagingtoPostgres(context.Background(), test.stagingTable, test.destTableName, test.dc)
 			if !errors.Is(err, test.expectedError) {
 				t.Errorf("unexpected error: %v", err)
 			}
