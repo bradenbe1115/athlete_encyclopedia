@@ -59,7 +59,7 @@ func (d *DuckDBJSONPostgresLoader) ExecuteQuery(ctx context.Context, query strin
 }
 
 // Creates a staging table from raw file.
-func (d *DuckDBJSONPostgresLoader) CreateStagingTable(ctx context.Context, table string, rawFilePath string) error {
+func (d *DuckDBJSONPostgresLoader) createStagingTable(ctx context.Context, table string, rawFilePath string) error {
 	fullQuery := fmt.Sprintf(`
 	CREATE TEMPORARY TABLE %s AS
 	SELECT
@@ -76,7 +76,7 @@ func (d *DuckDBJSONPostgresLoader) CreateStagingTable(ctx context.Context, table
 }
 
 // AddImportIdColumn appends an import id column to the table and populates the value.
-func (d *DuckDBJSONPostgresLoader) AddImportIDColumn(ctx context.Context, table string, importID string) error {
+func (d *DuckDBJSONPostgresLoader) addImportIDColumn(ctx context.Context, table string, importID string) error {
 	query := fmt.Sprintf(`
     ALTER TABLE %s
     ADD COLUMN _import_id VARCHAR DEFAULT '%s'`, table, importID)
@@ -93,7 +93,7 @@ type DBCol struct {
 }
 
 // MapDuckDBTypeToPostgres maps duckdb data types to postgres data types and updates DBCol struct.
-func MapDuckDBTypeToPostgres(duckType string) string {
+func mapDuckDBTypeToPostgres(duckType string) string {
 	switch strings.ToUpper(duckType) {
 	case "VARCHAR", "STRING":
 		return "TEXT"
@@ -113,12 +113,12 @@ func MapDuckDBTypeToPostgres(duckType string) string {
 }
 
 // Normalize replaces all spaces in a string with an underscore
-func Normalize(name string) string {
+func normalize(name string) string {
 	return strings.ToLower(strings.ReplaceAll(name, " ", "_"))
 }
 
 // GetDuckDBTableSchema gets schema of duckdb table.
-func (d *DuckDBJSONPostgresLoader) GetDuckDBTableSchema(ctx context.Context, tableName string) ([]DBCol, error) {
+func (d *DuckDBJSONPostgresLoader) getDuckDBTableSchema(ctx context.Context, tableName string) ([]DBCol, error) {
 	schemaQuery := fmt.Sprintf(`PRAGMA table_info('%s')`, tableName)
 	rows, err := d.DB.QueryContext(ctx, schemaQuery)
 	if err != nil {
@@ -135,8 +135,8 @@ func (d *DuckDBJSONPostgresLoader) GetDuckDBTableSchema(ctx context.Context, tab
 		if err := rows.Scan(&cid, &dbCol.Name, &dbCol.DuckType, &notnull, &dfltValue, &pk); err != nil {
 			return nil, fmt.Errorf("%w: %v", ErrUnexpectedQueryResultsSchema, err)
 		}
-		dbCol.PostgresType = MapDuckDBTypeToPostgres(dbCol.DuckType)
-		dbCol.NormalizedName = Normalize(dbCol.Name)
+		dbCol.PostgresType = mapDuckDBTypeToPostgres(dbCol.DuckType)
+		dbCol.NormalizedName = normalize(dbCol.Name)
 		dbCols = append(dbCols, dbCol)
 	}
 
@@ -144,7 +144,7 @@ func (d *DuckDBJSONPostgresLoader) GetDuckDBTableSchema(ctx context.Context, tab
 }
 
 // CreateColDefs creates strings that pair column names with data types.
-func CreateColDefs(dc []DBCol) []string {
+func createColDefs(dc []DBCol) []string {
 	var colDefs []string
 	for _, c := range dc {
 		colDefs = append(colDefs, fmt.Sprintf("%s %s", c.NormalizedName, c.PostgresType))
@@ -154,8 +154,8 @@ func CreateColDefs(dc []DBCol) []string {
 }
 
 // CreateDestTable creates a destination table using provided db columns as a schema definition.
-func (d *DuckDBJSONPostgresLoader) CreateDestTable(ctx context.Context, destTableName string, dc []DBCol) error {
-	colDefs := CreateColDefs(dc)
+func (d *DuckDBJSONPostgresLoader) createDestTable(ctx context.Context, destTableName string, dc []DBCol) error {
+	colDefs := createColDefs(dc)
 
 	query := fmt.Sprintf(`CREATE TABLE IF NOT EXISTS pg.public.%s (%s)`, destTableName, strings.Join(colDefs, ", "))
 
@@ -170,7 +170,7 @@ func (d *DuckDBJSONPostgresLoader) CreateDestTable(ctx context.Context, destTabl
 }
 
 // LoadFromStagingtoPostgres loads data from staging table into a postgres destination table.
-func (d *DuckDBJSONPostgresLoader) LoadFromStagingtoPostgres(ctx context.Context, stagingTable string, destTableName string, dc []DBCol) error {
+func (d *DuckDBJSONPostgresLoader) loadFromStagingtoPostgres(ctx context.Context, stagingTable string, destTableName string, dc []DBCol) error {
 	var colNames []string
 	for _, c := range dc {
 		colNames = append(colNames, c.NormalizedName)
@@ -190,27 +190,27 @@ func (d *DuckDBJSONPostgresLoader) LoadFromStagingtoPostgres(ctx context.Context
 // Run loads JSON data into Postgres table.
 func (d *DuckDBJSONPostgresLoader) Run(ctx context.Context, importId string, rawFilePath string, stagingTableName string, destTableName string) error {
 
-	err := d.CreateStagingTable(ctx, stagingTableName, rawFilePath)
+	err := d.createStagingTable(ctx, stagingTableName, rawFilePath)
 	if err != nil {
 		return fmt.Errorf("failed to create staging table: %w", err)
 	}
 
-	err = d.AddImportIDColumn(ctx, stagingTableName, importId)
+	err = d.addImportIDColumn(ctx, stagingTableName, importId)
 	if err != nil {
 		return fmt.Errorf("failed to add import id column to staging table: %w", err)
 	}
 
-	dc, err := d.GetDuckDBTableSchema(ctx, stagingTableName)
+	dc, err := d.getDuckDBTableSchema(ctx, stagingTableName)
 	if err != nil {
 		return fmt.Errorf("failed to get db schema: %w", err)
 	}
 
-	err = d.CreateDestTable(ctx, destTableName, dc)
+	err = d.createDestTable(ctx, destTableName, dc)
 	if err != nil {
 		return fmt.Errorf("failed creating destination table: %w", err)
 	}
 
-	err = d.LoadFromStagingtoPostgres(ctx, stagingTableName, destTableName, dc)
+	err = d.loadFromStagingtoPostgres(ctx, stagingTableName, destTableName, dc)
 	if err != nil {
 		return fmt.Errorf("failed loading data from staging to destination: %w", err)
 	}

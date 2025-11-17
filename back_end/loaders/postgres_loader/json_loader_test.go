@@ -31,7 +31,7 @@ func TestMapDuckDBTypeToPostgres(t *testing.T) {
 	}
 	for _, test := range tt {
 		t.Run(test.desc, func(t *testing.T) {
-			result := MapDuckDBTypeToPostgres(test.duckType)
+			result := mapDuckDBTypeToPostgres(test.duckType)
 			if diff := cmp.Diff(test.expected, result); diff != "" {
 				t.Errorf("expected -, actual +:\n%s", diff)
 			}
@@ -97,7 +97,7 @@ func TestGetDuckDBTableSchema(t *testing.T) {
 				WillReturnRows(test.newRows)
 
 			loader := DuckDBJSONPostgresLoader{DB: db, Logger: slog.New(slog.DiscardHandler)}
-			result, err := loader.GetDuckDBTableSchema(context.Background(), test.tableName)
+			result, err := loader.getDuckDBTableSchema(context.Background(), test.tableName)
 			if !errors.Is(err, test.expectedError) {
 				t.Errorf("unexpected error: %v", err)
 			}
@@ -162,7 +162,7 @@ func TestCreateDestTable(t *testing.T) {
 
 			mock.ExpectExec(regexp.QuoteMeta(test.expectedQuery)).WillReturnResult(sqlmock.NewResult(1, 1))
 			loader := DuckDBJSONPostgresLoader{DB: db, Logger: slog.New(slog.DiscardHandler)}
-			err = loader.CreateDestTable(context.Background(), test.destTableName, test.dc)
+			err = loader.createDestTable(context.Background(), test.destTableName, test.dc)
 			if !errors.Is(err, test.expectedError) {
 				t.Errorf("unexpected error: %v", err)
 			}
@@ -228,7 +228,7 @@ func TestLoadFromStagingtoPostgres(t *testing.T) {
 
 			mock.ExpectExec(regexp.QuoteMeta(test.expectedQuery)).WillReturnResult(sqlmock.NewResult(1, 1))
 			loader := DuckDBJSONPostgresLoader{DB: db, Logger: slog.New(slog.DiscardHandler)}
-			err = loader.LoadFromStagingtoPostgres(context.Background(), test.stagingTable, test.destTableName, test.dc)
+			err = loader.loadFromStagingtoPostgres(context.Background(), test.stagingTable, test.destTableName, test.dc)
 			if !errors.Is(err, test.expectedError) {
 				t.Errorf("unexpected error: %v", err)
 			}

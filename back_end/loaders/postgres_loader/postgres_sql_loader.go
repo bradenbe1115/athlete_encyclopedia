@@ -50,7 +50,7 @@ func (d *PostgresLoader) ExecuteQuery(ctx context.Context, query string) (sql.Re
 }
 
 // Creates a staging table from the query results.
-func (d *PostgresLoader) CreateStagingTable(ctx context.Context, query string, stagingTableName string) error {
+func (d *PostgresLoader) createStagingTable(ctx context.Context, query string, stagingTableName string) error {
 	fullQuery := fmt.Sprintf(`CREATE TEMPORARY TABLE %s AS %s`,
 		stagingTableName, query)
 
@@ -64,7 +64,7 @@ func (d *PostgresLoader) CreateStagingTable(ctx context.Context, query string, s
 }
 
 // AddImportIdColumn appends an import id column to the table and populates the value.
-func (d *PostgresLoader) AddImportIDColumn(ctx context.Context, table string, importID string) error {
+func (d *PostgresLoader) addImportIDColumn(ctx context.Context, table string, importID string) error {
 	query := fmt.Sprintf(`
     ALTER TABLE %s ADD COLUMN _import_id VARCHAR DEFAULT '%s'`,
 		table, importID)
@@ -74,7 +74,7 @@ func (d *PostgresLoader) AddImportIDColumn(ctx context.Context, table string, im
 }
 
 // GetColumnNamesFromTable loads column names from a table into a []string.
-func (d *PostgresLoader) GetColumnNamesFromTable(ctx context.Context, table string) ([]string, error) {
+func (d *PostgresLoader) getColumnNamesFromTable(ctx context.Context, table string) ([]string, error) {
 	query := fmt.Sprintf(`
 	SELECT
 		column_name
@@ -103,7 +103,7 @@ func (d *PostgresLoader) GetColumnNamesFromTable(ctx context.Context, table stri
 }
 
 // DeleteFromDestTable deletes data from destination table with matching import_id.
-func (d *PostgresLoader) DeleteFromTable(ctx context.Context, tableName string, import_id string) error {
+func (d *PostgresLoader) deleteFromTable(ctx context.Context, tableName string, import_id string) error {
 	query := fmt.Sprintf(`
 	DELETE FROM %s WHERE import_id = %s`, tableName, import_id)
 
@@ -118,7 +118,7 @@ func (d *PostgresLoader) DeleteFromTable(ctx context.Context, tableName string, 
 }
 
 // AppendStagingData appends data from staging table into destination table.
-func (d *PostgresLoader) AppendStagingData(ctx context.Context, stagingTableName string, destTableName string, colNames []string) error {
+func (d *PostgresLoader) appendStagingData(ctx context.Context, stagingTableName string, destTableName string, colNames []string) error {
 	query := fmt.Sprintf(`
 	INSERT INTO %s (%s)
 	SELECT
@@ -135,7 +135,7 @@ func (d *PostgresLoader) AppendStagingData(ctx context.Context, stagingTableName
 }
 
 // DropStagingTable drops table from database.
-func (d *PostgresLoader) DropStagingTable(ctx context.Context, stagingTableName string) error {
+func (d *PostgresLoader) dropStagingTable(ctx context.Context, stagingTableName string) error {
 	query := fmt.Sprintf(`DROP TABLE IF EXISTS %s`, stagingTableName)
 
 	d.Logger.With("staging table", stagingTableName).InfoContext(ctx, "dropping staging table")
@@ -151,33 +151,33 @@ func (d *PostgresLoader) DropStagingTable(ctx context.Context, stagingTableName 
 // Run loads a Postgres destination table with the results of a query.
 func (d *PostgresLoader) Load(ctx context.Context, importId string, query string, mode string, stagingTableName string, destTableName string) error {
 
-	err := d.CreateStagingTable(ctx, query, stagingTableName)
+	err := d.createStagingTable(ctx, query, stagingTableName)
 	if err != nil {
 		return fmt.Errorf("failed to create staging table: %w", err)
 	}
 
-	err = d.AddImportIDColumn(ctx, stagingTableName, importId)
+	err = d.addImportIDColumn(ctx, stagingTableName, importId)
 	if err != nil {
 		return fmt.Errorf("failed to add import id column: %w", err)
 	}
 
-	colNames, err := d.GetColumnNamesFromTable(ctx, destTableName)
+	colNames, err := d.getColumnNamesFromTable(ctx, destTableName)
 	if err != nil {
 		return fmt.Errorf("failed to get column names from destination table: %w", err)
 	}
 
 	if mode == "append" {
-		err = d.DeleteFromTable(ctx, destTableName, importId)
+		err = d.deleteFromTable(ctx, destTableName, importId)
 		if err != nil {
 			return fmt.Errorf("failed to delete data in destination table: %w", err)
 		}
 
-		err = d.AppendStagingData(ctx, stagingTableName, destTableName, colNames)
+		err = d.appendStagingData(ctx, stagingTableName, destTableName, colNames)
 		if err != nil {
 			return fmt.Errorf("failed to append data in destination table: %w", err)
 		}
 
-		err = d.DropStagingTable(ctx, stagingTableName)
+		err = d.dropStagingTable(ctx, stagingTableName)
 		if err != nil {
 			return fmt.Errorf("failed to clean up staging table: %w", err)
 		}

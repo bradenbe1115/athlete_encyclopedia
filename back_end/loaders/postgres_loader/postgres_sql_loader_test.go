@@ -40,7 +40,7 @@ func TestCreateStagingTable(t *testing.T) {
 
 			mock.ExpectExec(regexp.QuoteMeta(test.expectedQuery)).WillReturnResult(sqlmock.NewResult(1, 1))
 			loader := PostgresLoader{DB: db, Logger: slog.New(slog.DiscardHandler)}
-			err = loader.CreateStagingTable(context.Background(), test.query, test.stagingTableName)
+			err = loader.createStagingTable(context.Background(), test.query, test.stagingTableName)
 			if !errors.Is(err, test.expectedError) {
 				t.Errorf("unexpected error: %v", err)
 			}
@@ -75,7 +75,7 @@ func TestAddImportIdColumn(t *testing.T) {
 
 			mock.ExpectExec(regexp.QuoteMeta(test.expectedQuery)).WillReturnResult(sqlmock.NewResult(1, 1))
 			loader := PostgresLoader{DB: db, Logger: slog.New(slog.DiscardHandler)}
-			err = loader.AddImportIDColumn(context.Background(), test.table, test.importId)
+			err = loader.addImportIDColumn(context.Background(), test.table, test.importId)
 			if !errors.Is(err, test.expectedError) {
 				t.Errorf("unexpected error: %v", err)
 			}
@@ -118,7 +118,7 @@ func TestGetColumnNamesFromTable(t *testing.T) {
 
 			mock.ExpectQuery(regexp.QuoteMeta(test.expectedQuery)).WillReturnRows(rows)
 			loader := PostgresLoader{DB: db, Logger: slog.New(slog.DiscardHandler)}
-			columns, err := loader.GetColumnNamesFromTable(context.Background(), test.table)
+			columns, err := loader.getColumnNamesFromTable(context.Background(), test.table)
 			if !errors.Is(err, test.expectedError) {
 				t.Errorf("unexpected error: %v", err)
 			}
@@ -164,7 +164,7 @@ func TestDeleteFromTable(t *testing.T) {
 
 			mock.ExpectExec(regexp.QuoteMeta(test.expectedQuery)).WillReturnResult(sqlmock.NewResult(1, 1))
 			loader := PostgresLoader{DB: db, Logger: slog.New(slog.DiscardHandler)}
-			err = loader.DeleteFromTable(context.Background(), test.tableName, test.importId)
+			err = loader.deleteFromTable(context.Background(), test.tableName, test.importId)
 			if !errors.Is(err, test.expectedError) {
 				t.Errorf("unexpected error: %v", err)
 			}
@@ -205,7 +205,7 @@ func TestAppendStagingData(t *testing.T) {
 
 			mock.ExpectExec(regexp.QuoteMeta(test.expectedQuery)).WillReturnResult(sqlmock.NewResult(1, 1))
 			loader := PostgresLoader{DB: db, Logger: slog.New(slog.DiscardHandler)}
-			err = loader.AppendStagingData(context.Background(), test.stagingTableName, test.destTableName, test.colNames)
+			err = loader.appendStagingData(context.Background(), test.stagingTableName, test.destTableName, test.colNames)
 			if !errors.Is(err, test.expectedError) {
 				t.Errorf("unexpected error: %v", err)
 			}
