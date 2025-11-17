@@ -188,7 +188,7 @@ func (d *DuckDBJSONPostgresLoader) loadFromStagingtoPostgres(ctx context.Context
 }
 
 // Run loads JSON data into Postgres table.
-func (d *DuckDBJSONPostgresLoader) Run(ctx context.Context, importId string, rawFilePath string, stagingTableName string, destTableName string) error {
+func (d *DuckDBJSONPostgresLoader) Load(ctx context.Context, importId string, rawFilePath string, stagingTableName string, destTableName string) error {
 
 	err := d.createStagingTable(ctx, stagingTableName, rawFilePath)
 	if err != nil {
