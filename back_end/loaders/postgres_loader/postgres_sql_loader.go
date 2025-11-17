@@ -149,7 +149,7 @@ func (d *PostgresLoader) DropStagingTable(ctx context.Context, stagingTableName 
 }
 
 // Run loads a Postgres destination table with the results of a query.
-func (d *PostgresLoader) Run(ctx context.Context, importId string, query string, mode string, stagingTableName string, destTableName string) error {
+func (d *PostgresLoader) Load(ctx context.Context, importId string, query string, mode string, stagingTableName string, destTableName string) error {
 
 	err := d.CreateStagingTable(ctx, query, stagingTableName)
 	if err != nil {

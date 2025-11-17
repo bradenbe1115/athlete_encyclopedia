@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"regexp"
+	"strings"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
@@ -206,6 +208,113 @@ func TestAppendStagingData(t *testing.T) {
 			err = loader.AppendStagingData(context.Background(), test.stagingTableName, test.destTableName, test.colNames)
 			if !errors.Is(err, test.expectedError) {
 				t.Errorf("unexpected error: %v", err)
+			}
+		})
+	}
+}
+
+// setupLoadMockExpectations is a helper function to set up mock expectations for Load method
+func setupLoadMockExpectations(mock sqlmock.Sqlmock, importId, query, mode, stagingTableName, destTableName string,
+	destTableColumns []string) {
+	// Expect CreateStagingTable
+	mock.ExpectExec(regexp.QuoteMeta(fmt.Sprintf(
+		"CREATE TEMPORARY TABLE %s AS %s",
+		stagingTableName, query))).
+		WillReturnResult(sqlmock.NewResult(1, 1))
+
+	// Expect AddImportIDColumn
+	mock.ExpectExec(regexp.QuoteMeta(fmt.Sprintf(
+		"ALTER TABLE %s ADD COLUMN _import_id VARCHAR DEFAULT '%s'",
+		stagingTableName, importId))).
+		WillReturnResult(sqlmock.NewResult(1, 1))
+
+	// Expect GetColumnNamesFromTable
+	rows := sqlmock.NewRows([]string{"column_name"})
+	for _, col := range destTableColumns {
+		rows.AddRow(col)
+	}
+	mock.ExpectQuery(regexp.QuoteMeta(fmt.Sprintf(
+		"SELECT\n\t\tcolumn_name\n\tFROM information_schema.columns where table_name = '%s'",
+		destTableName))).
+		WillReturnRows(rows)
+
+	// Expect DeleteFromTable (only in append mode)
+	if mode == "append" {
+		mock.ExpectExec(regexp.QuoteMeta(fmt.Sprintf(
+			"DELETE FROM %s WHERE import_id = %s",
+			destTableName, importId))).
+			WillReturnResult(sqlmock.NewResult(1, 5))
+
+		// Expect AppendStagingData
+		mock.ExpectExec(regexp.QuoteMeta(fmt.Sprintf(
+			"INSERT INTO %s (%s)\n\tSELECT\n\t%s\n\tFROM %s",
+			destTableName,
+			strings.Join(destTableColumns, ", "),
+			strings.Join(destTableColumns, ", "),
+			stagingTableName))).
+			WillReturnResult(sqlmock.NewResult(1, 5))
+
+		// Expect DropStagingTable
+		mock.ExpectExec(regexp.QuoteMeta(fmt.Sprintf(
+			"DROP TABLE IF EXISTS %s",
+			stagingTableName))).
+			WillReturnResult(sqlmock.NewResult(1, 1))
+	}
+}
+
+func TestLoad(t *testing.T) {
+	tt := []struct {
+		desc             string
+		importId         string
+		query            string
+		mode             string
+		stagingTableName string
+		destTableName    string
+		destTableColumns []string
+		expectedError    error
+	}{
+		{
+			desc:             "Successfully load data in append mode",
+			importId:         "2025/11/11/11",
+			query:            "SELECT id, name from source_table",
+			mode:             "append",
+			stagingTableName: "staging_table",
+			destTableName:    "dest_table",
+			destTableColumns: []string{"id", "name"},
+			expectedError:    nil,
+		},
+		{
+			desc:             "Successfully load data in append mode",
+			importId:         "2025/11/11/11",
+			query:            "SELECT id, name from source_table",
+			mode:             "append",
+			stagingTableName: "staging_table",
+			destTableName:    "dest_table",
+			destTableColumns: []string{"id", "name"},
+			expectedError:    nil,
+		},
+	}
+	for _, test := range tt {
+		t.Run(test.desc, func(t *testing.T) {
+			db, mock, err := sqlmock.New()
+			if err != nil {
+				t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+			}
+			defer db.Close()
+
+			setupLoadMockExpectations(mock, test.importId,
+				test.query, test.mode, test.stagingTableName, test.destTableName,
+				test.destTableColumns)
+
+			loader := PostgresLoader{DB: db, Logger: slog.New(slog.DiscardHandler)}
+			err = loader.Load(context.Background(), test.importId, test.query, test.mode, test.stagingTableName, test.destTableName)
+
+			if !errors.Is(err, test.expectedError) {
+				t.Errorf("unexpected error: %v", err)
+			}
+
+			if err := mock.ExpectationsWereMet(); err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 		})
 	}
