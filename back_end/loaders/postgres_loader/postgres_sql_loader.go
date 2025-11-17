@@ -10,17 +10,12 @@ import (
 
 // PostgresConnector implements DBConnector
 type PostgresConnector struct {
-	Database string
-	User     string
-	Password string
-	Host     string
-	Port     string
+	ConnURI string
 }
 
-// Connect to a postgres database.
+// Connect to a postgres database using a connection URI.
 func (p *PostgresConnector) Connect(ctx context.Context) (*sql.DB, error) {
-	connStr := fmt.Sprintf(`user=%s dbname=%s password=%s host=%s port=%s sslmode=disable`, p.User, p.Database, p.Password, p.Host, p.Port)
-	db, err := sql.Open("postgres", connStr)
+	db, err := sql.Open("postgres", p.ConnURI)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Postgres connection: %w", err)
 	}
@@ -30,17 +25,16 @@ func (p *PostgresConnector) Connect(ctx context.Context) (*sql.DB, error) {
 	}
 
 	return db, nil
-
 }
 
 // PostgresLoader holds a connection to postgres
-type PostgresLoader struct {
+type PostgresSQLLoader struct {
 	DB     *sql.DB
 	Logger *slog.Logger
 }
 
 // ExecuteQuery executes a postgres query
-func (d *PostgresLoader) ExecuteQuery(ctx context.Context, query string) (sql.Result, error) {
+func (d *PostgresSQLLoader) ExecuteQuery(ctx context.Context, query string) (sql.Result, error) {
 	r, err := d.DB.ExecContext(ctx, query)
 	if err != nil {
 		return nil, fmt.Errorf("query failed: %v", err)
@@ -50,7 +44,7 @@ func (d *PostgresLoader) ExecuteQuery(ctx context.Context, query string) (sql.Re
 }
 
 // Creates a staging table from the query results.
-func (d *PostgresLoader) createStagingTable(ctx context.Context, query string, stagingTableName string) error {
+func (d *PostgresSQLLoader) createStagingTable(ctx context.Context, query string, stagingTableName string) error {
 	fullQuery := fmt.Sprintf(`CREATE TEMPORARY TABLE %s AS %s`,
 		stagingTableName, query)
 
@@ -64,7 +58,7 @@ func (d *PostgresLoader) createStagingTable(ctx context.Context, query string, s
 }
 
 // AddImportIdColumn appends an import id column to the table and populates the value.
-func (d *PostgresLoader) addImportIDColumn(ctx context.Context, table string, importID string) error {
+func (d *PostgresSQLLoader) addImportIDColumn(ctx context.Context, table string, importID string) error {
 	query := fmt.Sprintf(`
     ALTER TABLE %s ADD COLUMN _import_id VARCHAR DEFAULT '%s'`,
 		table, importID)
@@ -74,7 +68,7 @@ func (d *PostgresLoader) addImportIDColumn(ctx context.Context, table string, im
 }
 
 // GetColumnNamesFromTable loads column names from a table into a []string.
-func (d *PostgresLoader) getColumnNamesFromTable(ctx context.Context, table string) ([]string, error) {
+func (d *PostgresSQLLoader) getColumnNamesFromTable(ctx context.Context, table string) ([]string, error) {
 	query := fmt.Sprintf(`
 	SELECT
 		column_name
@@ -103,7 +97,7 @@ func (d *PostgresLoader) getColumnNamesFromTable(ctx context.Context, table stri
 }
 
 // DeleteFromDestTable deletes data from destination table with matching import_id.
-func (d *PostgresLoader) deleteFromTable(ctx context.Context, tableName string, import_id string) error {
+func (d *PostgresSQLLoader) deleteFromTable(ctx context.Context, tableName string, import_id string) error {
 	query := fmt.Sprintf(`
 	DELETE FROM %s WHERE import_id = %s`, tableName, import_id)
 
@@ -118,7 +112,7 @@ func (d *PostgresLoader) deleteFromTable(ctx context.Context, tableName string, 
 }
 
 // AppendStagingData appends data from staging table into destination table.
-func (d *PostgresLoader) appendStagingData(ctx context.Context, stagingTableName string, destTableName string, colNames []string) error {
+func (d *PostgresSQLLoader) appendStagingData(ctx context.Context, stagingTableName string, destTableName string, colNames []string) error {
 	query := fmt.Sprintf(`
 	INSERT INTO %s (%s)
 	SELECT
@@ -135,7 +129,7 @@ func (d *PostgresLoader) appendStagingData(ctx context.Context, stagingTableName
 }
 
 // DropStagingTable drops table from database.
-func (d *PostgresLoader) dropStagingTable(ctx context.Context, stagingTableName string) error {
+func (d *PostgresSQLLoader) dropStagingTable(ctx context.Context, stagingTableName string) error {
 	query := fmt.Sprintf(`DROP TABLE IF EXISTS %s`, stagingTableName)
 
 	d.Logger.With("staging table", stagingTableName).InfoContext(ctx, "dropping staging table")
@@ -149,7 +143,7 @@ func (d *PostgresLoader) dropStagingTable(ctx context.Context, stagingTableName 
 }
 
 // Run loads a Postgres destination table with the results of a query.
-func (d *PostgresLoader) Load(ctx context.Context, importId string, query string, mode string, stagingTableName string, destTableName string) error {
+func (d *PostgresSQLLoader) load(ctx context.Context, importId string, query string, mode string, stagingTableName string, destTableName string) error {
 
 	err := d.createStagingTable(ctx, query, stagingTableName)
 	if err != nil {
@@ -185,4 +179,8 @@ func (d *PostgresLoader) Load(ctx context.Context, importId string, query string
 	}
 
 	return nil
+}
+
+func (d *PostgresSQLLoader) Load(ctx context.Context, params LoadParams) error {
+	return d.load(ctx, params.ImportID, params.Query, params.Mode, params.StagingTableName, params.DestTableName)
 }

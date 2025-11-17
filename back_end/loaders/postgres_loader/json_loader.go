@@ -21,7 +21,7 @@ type DuckDBConnector interface {
 }
 
 type DuckDBPostgresConnector struct {
-	PGConnURI string
+	ConnURI string
 }
 
 // Connect creates a duckdb connection with a Postgres database attachment.
@@ -35,7 +35,7 @@ func (d *DuckDBPostgresConnector) Connect(ctx context.Context) (*sql.DB, error) 
 		return nil, fmt.Errorf("failed to load DuckDB Postgres extension: %v", err)
 	}
 
-	query := fmt.Sprintf(`ATTACH 'postgres:%s' AS pg (TYPE POSTGRES)`, d.PGConnURI)
+	query := fmt.Sprintf(`ATTACH 'postgres:%s' AS pg (TYPE POSTGRES)`, d.ConnURI)
 	_, err = db.ExecContext(ctx, query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to attach Postgres: %w", err)
@@ -187,8 +187,8 @@ func (d *DuckDBJSONPostgresLoader) loadFromStagingtoPostgres(ctx context.Context
 	return nil
 }
 
-// Run loads JSON data into Postgres table.
-func (d *DuckDBJSONPostgresLoader) Load(ctx context.Context, importId string, rawFilePath string, stagingTableName string, destTableName string) error {
+// load loads JSON data into Postgres table.
+func (d *DuckDBJSONPostgresLoader) load(ctx context.Context, importId string, rawFilePath string, stagingTableName string, destTableName string) error {
 
 	err := d.createStagingTable(ctx, stagingTableName, rawFilePath)
 	if err != nil {
@@ -215,4 +215,8 @@ func (d *DuckDBJSONPostgresLoader) Load(ctx context.Context, importId string, ra
 		return fmt.Errorf("failed loading data from staging to destination: %w", err)
 	}
 	return nil
+}
+
+func (d *DuckDBJSONPostgresLoader) Load(ctx context.Context, params LoadParams) error {
+	return d.load(ctx, params.ImportID, params.RawFilePath, params.StagingTableName, params.DestTableName)
 }
