@@ -1,0 +1,5 @@
+{
+    "inputType": "json",
+    "destTableName": "a_destination_table",
+    "loadMethod": "append"
+}

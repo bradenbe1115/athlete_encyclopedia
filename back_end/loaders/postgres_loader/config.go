@@ -2,12 +2,31 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 )
 
+var ErrInvalidConfig = errors.New("invalid config format")
+
+// validateConfig validates that config contains expected fields.
+func validateConfig(cfg *JobConfig) error {
+	if cfg.DestTableName == "" {
+		return ErrInvalidConfig
+	}
+
+	if cfg.InputType == "" {
+		return ErrInvalidConfig
+	}
+
+	if cfg.LoadMethod != "append" {
+		return ErrInvalidConfig
+	}
+
+	return nil
+}
+
 // ReadConfigFromFile reads a JSON config file and returns the JobConfig.
-// This function implements the ConfigReader type defined in commands.go.
 func ReadConfigFromFile(filePath string) (*JobConfig, error) {
 	data, err := os.ReadFile(filePath)
 	if err != nil {
@@ -16,7 +35,12 @@ func ReadConfigFromFile(filePath string) (*JobConfig, error) {
 
 	var config JobConfig
 	if err := json.Unmarshal(data, &config); err != nil {
-		return nil, fmt.Errorf("failed to parse config JSON: %w", err)
+		return nil, ErrInvalidConfig
+	}
+
+	err = validateConfig(&config)
+	if err != nil {
+		return nil, err
 	}
 
 	return &config, nil
