@@ -66,7 +66,7 @@ func (l *PostgresLoader) LoadData(ctx context.Context, jobFilePath string) error
 		return fmt.Errorf("failed to create loader: %w", err)
 	}
 
-	params := LoadParamsFromConfig(*config)
+	params := loadParamsFromConfig(*config)
 
 	if config.InputType == "sql" {
 		queryFilePath := jobFilePath + "/query.sql"
@@ -78,5 +78,8 @@ func (l *PostgresLoader) LoadData(ctx context.Context, jobFilePath string) error
 	}
 
 	importId := os.Getenv("IMPORT_ID")
+	if importId == "" {
+		return fmt.Errorf("failed to load import id")
+	}
 	return loader.Load(ctx, importId, *params)
 }

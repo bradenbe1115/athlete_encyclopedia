@@ -57,8 +57,8 @@ func loadQueryTextFromFile(queryFilePath string) (string, error) {
 	return query, nil
 }
 
-// LoadParamsFromConfig creates LoadParams from JobConfig struct
-func LoadParamsFromConfig(cfg JobConfig) *LoadParams {
+// loadParamsFromConfig creates LoadParams from JobConfig struct
+func loadParamsFromConfig(cfg JobConfig) *LoadParams {
 
 	params := LoadParams{
 		StagingTableName: fmt.Sprintf("stg_%s", cfg.DestTableName),
