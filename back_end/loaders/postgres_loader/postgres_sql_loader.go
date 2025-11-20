@@ -181,6 +181,6 @@ func (d *PostgresSQLLoader) load(ctx context.Context, importId string, query str
 	return nil
 }
 
-func (d *PostgresSQLLoader) Load(ctx context.Context, params LoadParams) error {
-	return d.load(ctx, params.ImportID, params.Query, params.Mode, params.StagingTableName, params.DestTableName)
+func (d *PostgresSQLLoader) Load(ctx context.Context, importId string, params LoadParams) error {
+	return d.load(ctx, importId, params.Query, params.Mode, params.StagingTableName, params.DestTableName)
 }

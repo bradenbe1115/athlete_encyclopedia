@@ -217,6 +217,6 @@ func (d *DuckDBJSONPostgresLoader) load(ctx context.Context, importId string, ra
 	return nil
 }
 
-func (d *DuckDBJSONPostgresLoader) Load(ctx context.Context, params LoadParams) error {
-	return d.load(ctx, params.ImportID, params.RawFilePath, params.StagingTableName, params.DestTableName)
+func (d *DuckDBJSONPostgresLoader) Load(ctx context.Context, importId string, params LoadParams) error {
+	return d.load(ctx, importId, params.RawFilePath, params.StagingTableName, params.DestTableName)
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"os"
 )
 
 type JobConfig struct {
@@ -28,7 +29,7 @@ type LoadParams struct {
 
 // Loader interface that all loaders implement
 type Loader interface {
-	Load(ctx context.Context, params LoadParams) error
+	Load(ctx context.Context, importId string, params LoadParams) error
 }
 
 // LoaderFactory creates the appropriate loader based on input type
@@ -65,10 +66,7 @@ func (l *PostgresLoader) LoadData(ctx context.Context, jobFilePath string) error
 		return fmt.Errorf("failed to create loader: %w", err)
 	}
 
-	params, err := LoadParamsFromConfig(*config)
-	if err != nil {
-		return fmt.Errorf("failed to create load params: %w", err)
-	}
+	params := LoadParamsFromConfig(*config)
 
 	if config.InputType == "sql" {
 		queryFilePath := jobFilePath + "/query.sql"
@@ -78,5 +76,7 @@ func (l *PostgresLoader) LoadData(ctx context.Context, jobFilePath string) error
 		}
 		params.Query = query
 	}
-	return loader.Load(ctx, *params)
+
+	importId := os.Getenv("IMPORT_ID")
+	return loader.Load(ctx, importId, *params)
 }

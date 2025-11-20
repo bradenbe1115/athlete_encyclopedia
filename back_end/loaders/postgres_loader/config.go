@@ -19,7 +19,7 @@ func validateConfig(cfg *JobConfig) error {
 		return ErrInvalidConfig
 	}
 
-	if cfg.LoadMethod != "append" {
+	if cfg.LoadMethod != "append" && cfg.LoadMethod != "" {
 		return ErrInvalidConfig
 	}
 
@@ -48,7 +48,7 @@ func ReadConfigFromFile(filePath string) (*JobConfig, error) {
 
 // loadQueryTextFromFile loads query text from a file.
 func loadQueryTextFromFile(queryFilePath string) (string, error) {
-	queryBytes, err := os.ReadFile("queries/my_query.sql")
+	queryBytes, err := os.ReadFile(queryFilePath)
 	if err != nil {
 		return "", fmt.Errorf("failed to read sql file: %v", err)
 	}
@@ -58,19 +58,14 @@ func loadQueryTextFromFile(queryFilePath string) (string, error) {
 }
 
 // LoadParamsFromConfig creates LoadParams from JobConfig struct
-func LoadParamsFromConfig(cfg JobConfig) (*LoadParams, error) {
-	importId := os.Getenv("IMPORT_ID")
-	if importId == "" {
-		return nil, fmt.Errorf("env var IMPORT_ID not set")
-	}
+func LoadParamsFromConfig(cfg JobConfig) *LoadParams {
 
 	params := LoadParams{
-		ImportID:         importId,
 		StagingTableName: fmt.Sprintf("stg_%s", cfg.DestTableName),
 		DestTableName:    cfg.DestTableName,
 		RawFilePath:      os.Getenv("RawFilePath"),
 		Query:            "",
 		Mode:             "append",
 	}
-	return &params, nil
+	return &params
 }
