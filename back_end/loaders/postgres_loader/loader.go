@@ -53,7 +53,8 @@ func New(ctx context.Context, configReader ConfigReader, connURI string) *Postgr
 }
 
 // loadData reads the config and loads the data to Postgres.
-func (l *PostgresLoader) LoadData(ctx context.Context, configFilePath string) error {
+func (l *PostgresLoader) LoadData(ctx context.Context, jobFilePath string) error {
+	configFilePath := jobFilePath + "/config.json"
 	config, err := l.ConfigReader(configFilePath)
 	if err != nil {
 		return fmt.Errorf("failed to parse job config: %w", err)
@@ -67,6 +68,15 @@ func (l *PostgresLoader) LoadData(ctx context.Context, configFilePath string) er
 	params, err := LoadParamsFromConfig(*config)
 	if err != nil {
 		return fmt.Errorf("failed to create load params: %w", err)
+	}
+
+	if config.InputType == "sql" {
+		queryFilePath := jobFilePath + "/query.sql"
+		query, err := loadQueryTextFromFile(queryFilePath)
+		if err != nil {
+			return fmt.Errorf("failed to load query: %w", err)
+		}
+		params.Query = query
 	}
 	return loader.Load(ctx, *params)
 }
