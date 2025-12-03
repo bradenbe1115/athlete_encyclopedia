@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"log/slog"
 	"strings"
 
@@ -13,6 +14,7 @@ import (
 
 var (
 	ErrUnexpectedQueryResultsSchema = errors.New("query results schema does not match expected")
+	ErrRawFilePathNotSet            = errors.New("env var RawFilePath not set")
 )
 
 // DuckDBConnector knows how to connect to a duckdb database.
@@ -218,5 +220,8 @@ func (d *DuckDBJSONPostgresLoader) load(ctx context.Context, importId string, ra
 }
 
 func (d *DuckDBJSONPostgresLoader) Load(ctx context.Context, importId string, params LoadParams) error {
+	if params.RawFilePath == "" {
+		log.Fatalf("error in params: %v", ErrRawFilePathNotSet)
+	}
 	return d.load(ctx, importId, params.RawFilePath, params.StagingTableName, params.DestTableName)
 }

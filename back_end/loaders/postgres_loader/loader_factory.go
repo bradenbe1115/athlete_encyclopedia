@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"os"
 )
 
 type PostgresLoaderFactory struct {
@@ -13,7 +14,8 @@ type PostgresLoaderFactory struct {
 // PostgresLoaderFactory implements LoaderFactory. Returns the appropriate Loader based on
 // inputType
 func (p *PostgresLoaderFactory) CreateLoader(ctx context.Context, inputType string) (Loader, error) {
-	logger := slog.Default()
+	//logger := slog.Default()
+	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	switch inputType {
 	case "json":
 		c := DuckDBPostgresConnector{ConnURI: p.ConnURI}

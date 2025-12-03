@@ -1,0 +1,5 @@
+{
+    "inputType": "json",
+    "destTableName": "athletes",
+    "loadMethod": "append"
+}

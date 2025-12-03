@@ -49,7 +49,8 @@ type PostgresLoader struct {
 
 // New creates a new PostgresLoader
 func New(ctx context.Context, configReader ConfigReader, connURI string) *PostgresLoader {
-	logger := slog.Default()
+	//logger := slog.Default()
+	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	return &PostgresLoader{Logger: logger, ConfigReader: configReader, LoaderFactory: &PostgresLoaderFactory{ConnURI: connURI}}
 }
 
