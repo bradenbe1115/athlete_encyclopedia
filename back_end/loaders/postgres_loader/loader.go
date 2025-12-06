@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+
+	"loaders/utils"
 )
 
 type JobConfig struct {
@@ -71,7 +73,7 @@ func (l *PostgresLoader) LoadData(ctx context.Context, jobFilePath string) error
 
 	if config.InputType == "sql" {
 		queryFilePath := jobFilePath + "/query.sql"
-		query, err := loadQueryTextFromFile(queryFilePath)
+		query, err := utils.ReadTextFromFile(queryFilePath)
 		if err != nil {
 			return fmt.Errorf("failed to load query: %w", err)
 		}

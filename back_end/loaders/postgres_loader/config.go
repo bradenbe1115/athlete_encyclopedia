@@ -46,16 +46,6 @@ func ReadConfigFromFile(filePath string) (*JobConfig, error) {
 	return &config, nil
 }
 
-// loadQueryTextFromFile loads query text from a file.
-func loadQueryTextFromFile(queryFilePath string) (string, error) {
-	queryBytes, err := os.ReadFile(queryFilePath)
-	if err != nil {
-		return "", fmt.Errorf("failed to read sql file: %v", err)
-	}
-	query := string(queryBytes)
-
-	return query, nil
-}
 
 // loadParamsFromConfig creates LoadParams from JobConfig struct
 func loadParamsFromConfig(cfg JobConfig) *LoadParams {
